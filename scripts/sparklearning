@@ -1,1 +1,138 @@
+### Data Reading JSON
+df_json = (
+    spark. 
+    read.
+    format('json').
+    option('inforSchema', True).
+    option('header', True).
+    option('multiline', False).
+    load('/FileStore/tables/drivers.json')
+)
+df_json
+### Data Reading csv
+dbutils.fs.ls('/FileStore/tables/')
+
+df = (
+    spark.
+    read.
+    format('csv').
+    option('inferSchema', True).
+    option('header', True).
+    load('/FileStore/tables/BigMart_Sales.csv')
+)
+# df.display()
+### Schema Defination
+df.printSchema()
+ddl_schema = '''
+                Item_Identifier STRING,
+                Item_Weight STRING,
+                Item_Fat_Content STRING,
+                Item_Visibility DOUBLE,
+                Item_Type STRING,
+                Item_MRP DOUBLE,
+                Outlet_Identifier STRING, 
+                Outlet_Establishment_Year INT,
+                Outlet_Size STRING,
+                Outlet_Location_Type STRING ,
+                Outlet_Type STRING ,
+                Item_Outlet_Sales DOUBLE
+            '''
+df = (
+    spark.
+    read.
+    format('csv').
+    schema(ddl_schema).
+    option('header', True).
+    load('/FileStore/tables/BigMart_Sales.csv')
+)
+df.display()
+df.printSchema()
+### `StructType()` Schema
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+strct_schema = StructType([
+    StructField('Item_Identifier', StringType(), True)
+])
+### `SELECT ()`
+# df.display()
+df_sel = df.select(col('Item_Identifier'), col('Item_Weight'), col('Item_Fat_Content')).display()
+### ALIAS
+df.select(col('Item_Identifier').alias('Item_ID')).display()
+### `filter()`
+#### Scenario 1
+
+df.filter(col('Item_Fat_Content') == 'Regular').display()
+#### Scenario 2
+df.filter((col('Item_Type') == 'Soft Drinks') & (col('Item_Weight') < 10)).display()
+#### Scenario 3
+df.filter((col('Outlet_Size').isNull()) & (col('Outlet_Location_Type').isin('Tier 1' , 'Tier 2'))).display()
+### `withColumnRenamed ()`
+df.withColumnRenamed('Item_Weight', 'Item_wt').display()
+### `withColumn()`  
+- It creates new cloumn
+- It Modifies a column
+#### Scenario 1
+- Use `lit()` to create a column with constant values
+df = df.withColumn('flag', lit('new'))
+# df.display()
+df.withColumn('Multiply', round(col('Item_Weight')*col('Item_MRP'), 2)).display()
+#### Scenario 2
+- We use `regexp_replace()` to replace a name in a column
+df.withColumn('Item_Fat_Content', regexp_replace(col('Item_Fat_Content'), 'Regular', 'Reg'))\
+    .withColumn('Item_Fat_Content', regexp_replace(col('Item_Fat_Content'), 'Low Fat', 'LF')).display()
+### Type Casting
+- `cast()` converts the data type
+df = df.withColumn('Item_Weight', col('Item_Weight').cast(StringType()))
+# df.printSchema()
+### `sort()`/`orderBy()`
+# `asc()` and `desc()` is used
+
+# df.sort(col('Item_Visibility').asc()).display()
+
+df.sort(col('Item_Weight').desc())
+- Sorting based on multiple columns
+df.sort(['Item_Weight', 'Item_Visibility'], ascending = [0,1]).display()
+### `limit()`
+df.limit(10).display()
+### `drop()`
+df.drop('Item_Visibility').display()
+df.drop('Item_Visibility', 'Item_Type').display()
+### `dropDuplicates()`
+df.dropDuplicates().display()
+# Removing duplicates based on columns
+df.dropDuplicates(subset=['Item_Type']).display()
+# df.distinct().display()
+### UNION and UNION BYNAME
+data1 = [('1', 'Kad'),
+         ('2', 'Sid')]
+schema1 = 'id STRING, name STRING'
+
+df1 = spark.createDataFrame(data1, schema1)
+
+
+data2 = [('3', 'Kad'),
+         ('4', 'Sid')]
+schema2 = 'id STRING, name STRING'
+
+df2 = spark.createDataFrame(data2, schema2)
+###### `union()`
+df1.union(df2).display()
+data1 = [('Kad', '1'),
+         ('Sid', '2',)]
+schema1 = 'name STRING, id STRING'
+
+df1 = spark.createDataFrame(data1, schema1)
+###### `unionByName()`
+df1.unionByName(df2).display()
+### STRING FUNCTIONS
+
+- `Initcap()`  capitalize first letters 
+- `lower()`  all text in lower casing
+- `upper()`  all text in upper casing
+df.select(initcap('Item_Type')).display()
+### DATE FUNCTIONS
+
+- `currentDate()`  gives current date
+- `dateAdd()`  adding date
+- `dateSub()`  subtracting date
 
