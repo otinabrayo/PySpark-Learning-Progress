@@ -136,3 +136,175 @@ df.select(initcap('Item_Type')).display()
 - `dateAdd()`  adding date
 - `dateSub()`  subtracting date
 
+df = df.withColumn('curr_date',current_date())
+
+df.display()
+
+#### Date_Add()
+df = df.withColumn('week_after',date_add('curr_date',7))
+
+df.display()
+#### Date_Sub()
+df.withColumn('week_before',date_sub('curr_date',7)).display()
+df = df.withColumn('week_before',date_add('curr_date',-7)) 
+
+df.display()
+### DateDIFF
+df = df.withColumn('datediff',datediff('week_after','curr_date'))
+
+df.display()
+### Date_Format()
+df = df.withColumn('week_before',date_format('week_before','dd-MM-yyyy'))
+
+df.display()
+### Handling Nulls
+#### Dropping NUlls
+df.dropna('all').display()
+df.dropna('any').display()
+df.dropna(subset=['Outlet_Size']).display()
+df.display()
+#### Filling Nulls
+df.fillna('NotAvailable').display()
+df.fillna('NotAvailable',subset=['Outlet_Size']).display()
+### SPLIT and Indexing
+#### SPLIT
+df.withColumn('Outlet_Type',split('Outlet_Type',' ')).display()
+#### Indexing
+df.withColumn('Outlet_Type',split('Outlet_Type',' ')[1]).display()
+### Explode
+df_exp = df.withColumn('Outlet_Type',split('Outlet_Type',' '))
+
+df_exp.display()
+df_exp.withColumn('Outlet_Type',explode('Outlet_Type')).display()
+df_exp.display()
+df_exp.withColumn('Type1_flag',array_contains('Outlet_Type','Type1')).display()
+### GroupBY
+#### Scenario - 1
+df.display()
+df.groupBy('Item_Type').agg(sum('Item_MRP')).display()
+#### Scenario - 2
+df.groupBy('Item_Type').agg(avg('Item_MRP')).display()
+#### SCenario - 3
+df.groupBy('Item_Type','Outlet_Size').agg(sum('Item_MRP').alias('Total_MRP')).display()
+#### Scenario - 4
+df.groupBy('Item_Type','Outlet_Size').agg(sum('Item_MRP'),avg('Item_MRP')).display()
+### Collect_List
+data = [('user1','book1'),
+        ('user1','book2'),
+        ('user2','book2'),
+        ('user2','book4'),
+        ('user3','book1')]
+
+schema = 'user string, book string'
+
+df_book = spark.createDataFrame(data,schema)
+
+df_book.display()
+df_book.groupBy('user').agg(collect_list('book')).display()
+df.select('Item_Type','Outlet_Size','Item_MRP').display()
+### PIVOT
+df.groupBy('Item_Type').pivot('Outlet_Size').agg(avg('Item_MRP')).display()
+### When-Otherwise
+#### Scenario - 1
+df = df.withColumn('veg_flag',when(col('Item_Type')=='Meat','Non-Veg').otherwise('Veg'))
+df.display()
+df.withColumn('veg_exp_flag',when(((col('veg_flag')=='Veg') & (col('Item_MRP')<100)),'Veg_Inexpensive')\
+                            .when((col('veg_flag')=='Veg') & (col('Item_MRP')>100),'Veg_Expensive')\
+                            .otherwise('Non_Veg')).display() 
+### JOINS
+dataj1 = [('1','gaur','d01'),
+          ('2','kit','d02'),
+          ('3','sam','d03'),
+          ('4','tim','d03'),
+          ('5','aman','d05'),
+          ('6','nad','d06')] 
+
+schemaj1 = 'emp_id STRING, emp_name STRING, dept_id STRING' 
+
+df1 = spark.createDataFrame(dataj1,schemaj1)
+
+dataj2 = [('d01','HR'),
+          ('d02','Marketing'),
+          ('d03','Accounts'),
+          ('d04','IT'),
+          ('d05','Finance')]
+
+schemaj2 = 'dept_id STRING, department STRING'
+
+df2 = spark.createDataFrame(dataj2,schemaj2)
+df1.display()
+df2.display()
+#### Inner Join
+df1.join(df2, df1['dept_id']==df2['dept_id'],'inner').display()
+#### Left Join
+df1.join(df2,df1['dept_id']==df2['dept_id'],'left').display()
+#### LEFT JOIN
+df1.join(df2,df1['dept_id']==df2['dept_id'],'right').display()
+#### ANTI JOIN 
+df1.join(df2,df1['dept_id']==df2['dept_id'],'anti').display()
+### WINDOW FUNCTIONS
+#### ROW_NUMBER()
+df.display()
+from pyspark.sql.window import Window
+df.withColumn('rowCol',row_number().over(Window.orderBy('Item_Identifier'))).display()
+#### RANK VS DENSE RANK 
+df.withColumn('rank',rank().over(Window.orderBy(col('Item_Identifier').desc())))\
+        .withColumn('denseRank',dense_rank().over(Window.orderBy(col('Item_Identifier').desc()))).display()
+df.withColumn('dum',sum('Item_MRP').over(Window.orderBy('Item_Identifier').rowsBetween(Window.unboundedPreceding,Window.currentRow))).display()
+#### Cumulative Sum
+df.withColumn('cumsum',sum('Item_MRP').over(Window.orderBy('Item_Type'))).display()
+df.withColumn('cumsum',sum('Item_MRP').over(Window.orderBy('Item_Type').rowsBetween(Window.unboundedPreceding,Window.currentRow))).display()
+df.withColumn('totalsum',sum('Item_MRP').over(Window.orderBy('Item_Type').rowsBetween(Window.unboundedPreceding,Window.unboundedFollowing))).display()
+### USER DEFINED FUNCTIONS (UDF)
+#### STEP - 1
+def my_func(x):
+    return x*x 
+#### STEP - 2
+my_udf = udf(my_func)
+df.withColumn('mynewcol',my_udf('Item_MRP')).display()
+### DATA WRITING
+#### CSV
+df.write.format('csv')\
+        .save('/FileStore/tables/CSV/data.csv')
+#### APPEND
+df.write.format('csv')\
+        .mode('append')\
+        .save('/FileStore/tables/CSV/data.csv')
+df.write.format('csv')\
+        .mode('append')\
+        .option('path','/FileStore/tables/CSV/data.csv')\
+        .save()
+#### Overwrite
+df.write.format('csv')\
+.mode('overwrite')\
+.option('path','/FileStore/tables/CSV/data.csv')\
+.save()
+#### Error
+df.write.format('csv')\
+.mode('error')\
+.option('path','/FileStore/tables/CSV/data.csv')\
+.save()
+#### Ignore
+df.write.format('csv')\
+.mode('ignore')\
+.option('path','/FileStore/tables/CSV/data.csv')\
+.save()
+#### PARQUET
+df.write.format('parquet')\
+.mode('overwrite')\
+.option('path','/FileStore/tables/CSV/data.csv')\
+.save()
+#### TABLE
+df.write.format('parquet')\
+.mode('overwrite')\
+.saveAsTable('my_table')
+df.display()
+### SPARK SQL
+#### createTempView 
+df.createTempView('my_view')
+%sql
+
+select * from my_view where Item_Fat_Content = 'Lf'
+df_sql = spark.sql("select * from my_view where Item_Fat_Content = 'Lf'")
+df_sql.display()
+
