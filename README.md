@@ -25,12 +25,27 @@ This repository documents my learning journey in PySpark. Below is a list of top
 
 ### Data Operations
 - Merging data using `union()` and `unionByName()`
+- String functions: `init()`
+- Date functions
+- Handling null values
+- Splitting strings and indexing
+- Grouping data using `groupBy()`
+- Collecting lists using `collect_list()`
+- Pivoting data with `pivot()`
+- Conditional operations using `when()` and `otherwise()`
+- Performing joins
+- Window functions
+- User-defined functions (UDFs)
+
+### Data Writing
+- Writing data in Parquet format
+- Writing data as Tables
+- Using Spark SQL
 
 ## Next Steps
 I plan to explore more advanced PySpark functionalities, including:
-- Joins and aggregations
-- Window functions
 - Performance optimization techniques
+- Machine learning with PySpark MLlib
 
 ## How to Use
 This repository will contain example scripts demonstrating these concepts. Stay tuned for updates!
