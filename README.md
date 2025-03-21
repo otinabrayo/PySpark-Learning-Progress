@@ -12,6 +12,7 @@ This repository documents my learning journey in PySpark. Below is a list of top
 ### Schema Definition
 - Defining schemas using `StructType`
 
+
 ### Data Transformation
 - Selecting columns using `select()`
 - Renaming columns with `alias()` and `withColumnRenamed()`
